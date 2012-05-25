@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <!-- TODO: Factor out redundant shit -->
+    <title>Pick a Number</title>
+  </head>
+  <body>
+    {.section guesses}
+      <h1>Incorrect Guesses</h1>
+      <ul>
+        {.repeated section @}
+          <li>{@|str}</li>
+        {.end}
+    {.end}
+    <form method="post" action="guess/">
+      <!-- TODO: Server should specify the min and max -->
+      <input type="number" name="guess" min="0" max="9" required />
+      <input type="submit" value="Guess" />
+    </form>
+  </body>
+</html>
