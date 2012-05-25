@@ -2,13 +2,19 @@
 
 var
   assert = require('assert'),
-  server = require('../server');
+  server = injectr('../server', {
+    http: {
+      createServer: function (handleRequest) {
+        assert.fail('FAIL!');
+      }
+    }
+  });
 
 require('vows').describe('Server').addBatch({
   'The server': {
     'when invoked with the path "/"': {
       topic: function () {
-        setTimeout(this.callback, 2000);
+        server.this.callback, 2000);
       },
       'responds with a redirect to /game/': function () {
         assert.equal(0, 1);
