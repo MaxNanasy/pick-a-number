@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var
   formidable = require('formidable'),
   fs = require('fs'),
