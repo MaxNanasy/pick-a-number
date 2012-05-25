@@ -11,6 +11,7 @@
         {.repeated section @}
           <li>{@|str}</li>
         {.end}
+      </ul>
     {.end}
     <form method="post" action="guess/">
       <!-- TODO: Server should specify the min and max -->
