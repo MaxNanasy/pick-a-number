@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 var
   formidable = require('formidable'),
   fs = require('fs'),
@@ -9,18 +7,20 @@ var
   url = require('url'),
   uuid = require('node-uuid');
 
+http.ServerResponse.prototype.writeOnlyHead = function () {
+  this.writeHead.apply(this, arguments);
+  this.end();
+};
+
+module.exports = function () {
+
 var idToGameMap = {};
 
 function validateAndParseDecimalNonNegativeInt(string) {
   return string != null && string.match(/^\d+$/) ? parseInt(string) : NaN;
 }
 
-http.ServerResponse.prototype.writeOnlyHead = function () {
-  this.writeHead.apply(this, arguments);
-  this.end();
-};
-
-http.createServer(function (request, response) {
+return function (request, response) {
   var
     game,
     gameId,
@@ -127,4 +127,5 @@ http.createServer(function (request, response) {
       } else response.writeOnlyHead(httpStatus.NOT_FOUND);
     }
   }
-}).listen(8080);
+};
+};
