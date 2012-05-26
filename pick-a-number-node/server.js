@@ -51,6 +51,14 @@ http.createServer(function (request, response) {
           response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
       }
     break;
+    case '/app-icon.svg':
+      if (request.method !== 'GET') {
+        response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
+        return;
+      }
+      response.writeHead(httpStatus.OK, { 'Content-Type': 'image/svg+xml' });
+      fs.createReadStream('app-icon.svg').pipe(response);
+    break;
     default: {
       if (gamePathParse = /^\/game\/([^\/]+)\/$/.exec(urlParse.pathname)) {
         if (request.method !== 'GET') {
