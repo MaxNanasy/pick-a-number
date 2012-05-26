@@ -56,7 +56,7 @@ http.createServer(function (request, response) {
         response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
         return;
       }
-      response.writeHead(httpStatus.OK, { 'Content-Type': 'image/svg+xml' });
+      response.writeHead(httpStatus.OK, { 'Content-Type': 'image/svg+xml', 'Content-Encoding': 'UTF-8' });
       fs.createReadStream('app-icon.svg').pipe(response);
     break;
     default: {
