@@ -12,7 +12,7 @@ var
 var idToGameMap = {};
 
 function validateAndParseDecimalNonNegativeInt(string) {
-  return string != null && string.match(/^\d+$/) ? parseInt(string) : NaN;
+  return string != null && string.match(/^\d+$/) ? parseInt(string, 10) : NaN;
 }
 
 http.ServerResponse.prototype.writeOnlyHead = function () {
