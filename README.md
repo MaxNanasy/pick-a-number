@@ -5,5 +5,6 @@ It's a pick-a-number game.
 ##Running
 
 On Unix:
-cd pick-a-number-node
-./server.js
+
+	cd pick-a-number-node
+	./server.js
