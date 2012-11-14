@@ -6,6 +6,7 @@ var
   http = require('http'),
   httpStatus = require('http-status'),
   jsontemplate = require('json-template-foo'),
+  openid = require('openid'),
   url = require('url'),
   uuid = require('node-uuid');
 
@@ -50,6 +51,57 @@ http.createServer(function (request, response) {
         default:
           response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
       }
+    break;
+    case '/login/':
+      function makeOpenIdRelyingParty() {
+        return new openid.RelyingParty(
+          (request.connection.encrypted ? 'https' : 'http') + '://' + request.headers.host + '/login/verify/'
+        );
+      }
+      switch (request.method) {
+        case 'GET':
+          fs.createReadStream('login.html').pipe(response); // TODO: Content-Type
+        break;
+        case 'POST':
+          new formidable.IncomingForm().parse(request, function (error, fields) {
+            if (error) {
+              response.writeHead(httpStatus.BAD_REQUEST); // TODO: Content-Type
+              response.end(error); // TODO: Test
+              return;
+            }
+            makeOpenIdRelyingParty().authenticate(fields.openIdIdentifier, false, function (error, authUrl) {
+                if (error)
+                  // TODO: Return to login page
+                  // TODO: Content-Type
+                  response.end('Authentication failed: ' + error.message);
+                else if (!authUrl)
+                  // TODO: Return to login page
+                  // TODO: Content-Type
+                  response.end('Authentication failed');
+                else
+                  response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': authUrl });
+              });
+          });
+        break;
+        default:
+          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
+      }
+    break;
+    case '/login/verify/':
+      if (request.method !== 'GET') {
+          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
+          return;
+      }
+      makeOpenIdRelyingParty().verifyAssertion(request, function (error, result) {
+        if (!error && result.authenticated)
+          response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '/' });
+        else {
+          // TODO: Report errors to user
+          error && console.log('OpenID error:', error.message);
+          result && console.log('OpenID failure result:', result);
+          response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '..' });
+        }
+      });
     break;
     default: {
       if (gamePathParse = /^\/game\/([^\/]+)\/$/.exec(urlParse.pathname)) {
