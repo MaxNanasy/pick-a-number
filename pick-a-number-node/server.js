@@ -69,6 +69,10 @@ http.createServer(function (request, response) {
               response.end(error); // TODO: Test
               return;
             }
+            if (!fields.openIdIdentifier) {
+              response.writeOnlyHead(httpStatus.BAD_REQUEST);
+              return;
+            }
             makeOpenIdRelyingParty().authenticate(fields.openIdIdentifier, false, function (error, authUrl) {
                 if (error)
                   // TODO: Return to login page
