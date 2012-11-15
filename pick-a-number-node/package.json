@@ -2,6 +2,7 @@
   "name": "pick-a-number",
   "version": "0.0.0",
   "dependencies": {
+    "cookies": "0.3.4",
     "formidable": "1.0.9",
     "http-status": "0.1.1",
     "json-template-foo": "0.8.0",

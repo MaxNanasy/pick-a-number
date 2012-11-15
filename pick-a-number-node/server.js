@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var
+  Cookies = require('cookies'),
   formidable = require('formidable'),
   fs = require('fs'),
   http = require('http'),
@@ -10,7 +11,9 @@ var
   url = require('url'),
   uuid = require('node-uuid');
 
-var idToGameMap = {};
+var
+  idToGameMap = {},
+  idToSessionMap = {};
 
 function validateAndParseDecimalNonNegativeInt(string) {
   return string != null && string.match(/^\d+$/) ? parseInt(string, 10) : NaN;
@@ -23,6 +26,7 @@ http.ServerResponse.prototype.writeOnlyHead = function () {
 
 http.createServer(function (request, response) {
   var
+    cookies = new Cookies(request, response),
     game,
     gameId,
     gamePathParse,
@@ -97,8 +101,16 @@ http.createServer(function (request, response) {
           return;
       }
       makeOpenIdRelyingParty().verifyAssertion(request, function (error, result) {
-        if (!error && result.authenticated)
+        if (!error && result.authenticated) {
+          var
+            sessionId = uuid.v4(),
+            session = { openId: result.claimedIdentifier };
+          // FIXME: Sessions are never removed from memory
+          // TODO: Handle the case in which the user is already logged in
+          idToSessionMap[sessionId] = session;
+          cookies.set('sessionId', sessionId);
           response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '/' });
+        }
         else {
           // TODO: Report errors to user
           error && console.log('OpenID error:', error.message);
