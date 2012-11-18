@@ -4,8 +4,15 @@
     <title>Pick a Number</title>
   </head>
   <body>
+    {.section openId}
+      Hello {@}!
+    {.end}
     <form method="post">
       <input type="submit" value="New game" autofocus />
+    </form>
+    <a href="../login/">Login</a>
+    <form method="post" action="../logout/">
+      <input type="submit" value="Logout" />
     </form>
   </body>
 </html>
