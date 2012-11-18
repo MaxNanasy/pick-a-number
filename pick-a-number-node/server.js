@@ -34,7 +34,7 @@ http.createServer(function (request, response) {
     urlParse = url.parse(request.url, true);
   var
     sessionId = cookies.get('sessionId'),
-    session = sessionId && idToSessionMap[sessionId];
+    session = idToSessionMap.hasOwnProperty(sessionId) && idToSessionMap[sessionId];
   switch (urlParse.pathname) {
     case '/':
       response.writeOnlyHead(httpStatus.FOUND, { 'Location': 'game/' });
