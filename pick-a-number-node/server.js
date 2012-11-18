@@ -32,6 +32,9 @@ http.createServer(function (request, response) {
     gamePathParse,
     makeGuessPathParse,
     urlParse = url.parse(request.url, true);
+  var
+    sessionId = cookies.get('sessionId'),
+    session = sessionId && idToSessionMap[sessionId];
   switch (urlParse.pathname) {
     case '/':
       response.writeOnlyHead(httpStatus.FOUND, { 'Location': 'game/' });
@@ -39,7 +42,7 @@ http.createServer(function (request, response) {
     case '/game/': // TODO: Handle URI-encoded versions
       switch (request.method) {
         case 'GET':
-          fs.createReadStream('game.html').pipe(response); // TODO: Content-Type
+          response.end(jsontemplate.Template(fs.readFileSync('game.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ openId: session && session.openId })); // TODO: Content-Type
         break;
         case 'POST':
           gameId = uuid.v4();
