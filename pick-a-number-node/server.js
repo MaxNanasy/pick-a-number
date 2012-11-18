@@ -100,8 +100,8 @@ http.createServer(function (request, response) {
     break;
     case '/login/verify/':
       if (request.method !== 'GET') {
-          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-          return;
+        response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
+        return;
       }
       makeOpenIdRelyingParty().verifyAssertion(request, function (error, result) {
         if (!error && result.authenticated) {
