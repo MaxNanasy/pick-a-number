@@ -4,6 +4,9 @@
     <title>Pick a Number</title>
   </head>
   <body>
+    {.section openId}
+      Hello {@}!
+    {.end}
     <form method="post">
       <input type="submit" value="New game" autofocus />
     </form>
