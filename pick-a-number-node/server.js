@@ -122,6 +122,17 @@ http.createServer(function (request, response) {
         }
       });
     break;
+    case '/logout/':
+      if (request.method !== 'POST') {
+        response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
+        return;
+      }
+      if (session) {
+        delete idToSessionMap[sessionId];
+        cookies.set('sessionId');
+      }
+      response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '/' });
+    break;
     default: {
       if (gamePathParse = /^\/game\/([^\/]+)\/$/.exec(urlParse.pathname)) {
         if (request.method !== 'GET') {
