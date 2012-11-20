@@ -15,7 +15,7 @@
     {.end}
     <form method="post" action="guess/">
       <!-- TODO: Server should specify the min and max -->
-      <input type="number" name="guess" min="0" max="9" required autofocus />
+      <input type="number" name="guess" min="0" max="9" required autofocus value="{currentGuess|raw}" />
       <input type="submit" value="Guess" />
     </form>
   </body>
