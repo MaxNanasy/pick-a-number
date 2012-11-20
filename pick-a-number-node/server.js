@@ -50,8 +50,13 @@ http.createServer(function (request, response) {
             number: Math.floor(Math.random() * 10),
             guesses: []
           };
+          Object.defineProperty(game, 'currentGuess', {
+            get: function () {
+              return this.guesses.length ? this.guesses[this.guesses.length - 1] : null;
+            }
+          });
           Object.defineProperty(game, 'state', { get: function () {
-            return this.guesses[this.guesses.length - 1] === this.number ? 'won' : 'inProgress';
+            return this.currentGuess === this.number ? 'won' : 'inProgress';
           } });
           response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': encodeURIComponent(gameId) + '/' });
         break;
@@ -157,7 +162,7 @@ http.createServer(function (request, response) {
         game = idToGameMap[gameId];
         switch (game.state) {
           case 'inProgress':
-            response.end(jsontemplate.Template(fs.readFileSync('game-round.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ guesses: game.guesses })); // TODO: Content-Type
+            response.end(jsontemplate.Template(fs.readFileSync('game-round.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand(game)); // TODO: Content-Type
           break;
           case 'won':
             response.end(jsontemplate.Template(fs.readFileSync('game-won.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ guessesCount: game.guesses.length })); // TODO: Content-Type
