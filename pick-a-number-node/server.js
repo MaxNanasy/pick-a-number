@@ -46,18 +46,16 @@ http.createServer(function (request, response) {
         break;
         case 'POST':
           gameId = uuid.v4();
-          game = idToGameMap[gameId] = {
+          idToGameMap[gameId] = {
             number: Math.floor(Math.random() * 10),
-            guesses: []
-          };
-          Object.defineProperty(game, 'currentGuess', {
-            get: function () {
+            guesses: [],
+            get currentGuess() {
               return this.guesses.length ? this.guesses[this.guesses.length - 1] : null;
+            },
+            get state() {
+              return this.currentGuess === this.number ? 'won' : 'inProgress';
             }
-          });
-          Object.defineProperty(game, 'state', { get: function () {
-            return this.currentGuess === this.number ? 'won' : 'inProgress';
-          } });
+          };
           response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': encodeURIComponent(gameId) + '/' });
         break;
         default:
