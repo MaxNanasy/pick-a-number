@@ -42,7 +42,7 @@ http.createServer(function (request, response) {
     case '/game/': // TODO: Handle URI-encoded versions
       switch (request.method) {
         case 'GET':
-          response.end(jsontemplate.Template(fs.readFileSync('game.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ openId: session && session.openId })); // TODO: Content-Type
+          response.end(jsontemplate.Template(fs.readFileSync('game.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ session: session })); // TODO: Content-Type
         break;
         case 'POST':
           gameId = uuid.v4();

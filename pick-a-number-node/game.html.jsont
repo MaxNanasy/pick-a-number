@@ -4,15 +4,20 @@
     <title>Pick a Number</title>
   </head>
   <body>
-    {.section openId}
-      Hello {@}!
+    {# TODO Use (.section session.openId), which currently doesn't work with json-template}
+    {.section session}
+      {.section openId}
+        Hello {@}!
+      {.end}
     {.end}
     <form method="post">
       <input type="submit" value="New game" autofocus />
     </form>
     <a href="../login/">Login</a>
-    <form method="post" action="../logout/">
-      <input type="submit" value="Logout" />
-    </form>
+    {.section session}
+      <form method="post" action="../logout/">
+        <input type="submit" value="Logout" />
+      </form>
+    {.end}
   </body>
 </html>
