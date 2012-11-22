@@ -8,12 +8,14 @@ var
   httpStatus = require('http-status'),
   jsontemplate = require('json-template-foo'),
   openid = require('openid'),
+  sqlite3 = require('sqlite3'),
   url = require('url'),
   uuid = require('node-uuid');
 
 var
   idToGameMap = {},
-  idToSessionMap = {};
+  idToSessionMap = {},
+  db = new sqlite3.Database('db'); // TODO Handle error opening DB
 
 function validateAndParseDecimalNonNegativeInt(string) {
   return string != null && string.match(/^\d+$/) ? parseInt(string, 10) : NaN;
