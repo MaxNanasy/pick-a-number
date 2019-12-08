@@ -1,215 +1,220 @@
 #!/usr/bin/env node
 
-var
-  Cookies = require('cookies'),
-  formidable = require('formidable'),
+const
+  slashes = require('connect-slashes'),
+  cookieParser = require('cookie-parser'),
+  doAsync = require('doasync'),
+  express = require('express'),
+  expressHealthcheck = require('express-healthcheck'),
   fs = require('fs'),
-  http = require('http'),
   httpStatus = require('http-status'),
   jsontemplate = require('json-template-foo'),
   openid = require('openid'),
-  url = require('url'),
-  uuid = require('uuid');
+  uuid = require('uuid')
 
-var
+require('express-async-errors')
+
+const
   idToGameMap = {},
-  idToSessionMap = {};
+  idToSessionMap = {}
+
+const app = express()
+
+app.use(cookieParser())
+app.use(express.urlencoded({
+  extended: true
+}))
+app.use('/health', expressHealthcheck())
+app.use(slashes())
 
 function validateAndParseDecimalNonNegativeInt(string) {
-  return string != null && string.match(/^\d+$/) ? parseInt(string, 10) : NaN;
+  return string != null && string.match(/^\d+$/)
+    ? parseInt(string, 10)
+    : NaN
 }
 
-http.ServerResponse.prototype.writeOnlyHead = function () {
-  this.writeHead.apply(this, arguments);
-  this.end();
-};
+async function renderHtmlTemplate(response, templateFile, data) {
+  const
+    templateOptions = {
+      default_formatter: 'html'
+    },
+    templateString =
+      await doAsync(fs).readFile(templateFile, 'utf8'),
+    htmlString = jsontemplate.expand(templateString, data, templateOptions)
 
-http.createServer(function (request, response) {
-  var
-    cookies = new Cookies(request, response),
-    game,
-    gameId,
-    gamePathParse,
-    makeGuessPathParse,
-    urlParse = url.parse(request.url, true);
-  var
-    sessionId = cookies.get('sessionId'),
-    session = idToSessionMap.hasOwnProperty(sessionId) && idToSessionMap[sessionId];
-  switch (urlParse.pathname) {
-    case '/':
-      response.writeOnlyHead(httpStatus.FOUND, { 'Location': 'game/' });
-    break;
-    case '/game/': // TODO: Handle URI-encoded versions
-      switch (request.method) {
-        case 'GET':
-          response.end(jsontemplate.Template(fs.readFileSync('game.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ openId: session && session.openId })); // TODO: Content-Type
-        break;
-        case 'POST':
-          gameId = uuid.v4();
-          idToGameMap[gameId] = {
-            number: Math.floor(Math.random() * 10),
-            guesses: [],
-            get currentGuess() {
-              return this.guesses.length ? this.guesses[this.guesses.length - 1] : null;
-            },
-            get state() {
-              return this.currentGuess === this.number ? 'won' : 'inProgress';
-            }
-          };
-          response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': encodeURIComponent(gameId) + '/' });
-        break;
-        default:
-          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-      }
-    break;
-    case '/login/':
-      function makeOpenIdRelyingParty() {
-        return new openid.RelyingParty(
-          (request.connection.encrypted ? 'https' : 'http') + '://' + request.headers.host + '/login/verify/'
-        );
-      }
-      switch (request.method) {
-        case 'GET':
-          fs.createReadStream('login.html').pipe(response); // TODO: Content-Type
-        break;
-        case 'POST':
-          new formidable.IncomingForm().parse(request, function (error, fields) {
-            if (error) {
-              response.writeHead(httpStatus.BAD_REQUEST); // TODO: Content-Type
-              response.end(error); // TODO: Test
-              return;
-            }
-            if (!fields.openIdIdentifier) {
-              response.writeOnlyHead(httpStatus.BAD_REQUEST);
-              return;
-            }
-            makeOpenIdRelyingParty().authenticate(fields.openIdIdentifier, false, function (error, authUrl) {
-                if (error)
-                  // TODO: Return to login page
-                  // TODO: Content-Type
-                  response.end('Authentication failed: ' + error.message);
-                else if (!authUrl)
-                  // TODO: Return to login page
-                  // TODO: Content-Type
-                  response.end('Authentication failed');
-                else
-                  response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': authUrl });
-              });
-          });
-        break;
-        default:
-          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-      }
-    break;
-    case '/login/verify/':
-      if (request.method !== 'GET') {
-        response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-        return;
-      }
-      makeOpenIdRelyingParty().verifyAssertion(request, function (error, result) {
-        if (!error && result.authenticated) {
-          var
-            sessionId = uuid.v4(),
-            session = { openId: result.claimedIdentifier };
-          // FIXME: Sessions are never removed from memory
-          // TODO: Handle the case in which the user is already logged in
-          idToSessionMap[sessionId] = session;
-          cookies.set('sessionId', sessionId);
-          response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '/' });
-        }
-        else {
-          // TODO: Report errors to user
-          error && console.log('OpenID error:', error.message);
-          result && console.log('OpenID failure result:', result);
-          response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '..' });
-        }
-      });
-    break;
-    case '/logout/':
-      if (request.method !== 'POST') {
-        response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-        return;
-      }
-      if (session) {
-        delete idToSessionMap[sessionId];
-        cookies.set('sessionId');
-      }
-      response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '/' });
-    break;
-    default: {
-      if (gamePathParse = /^\/game\/([^\/]+)\/$/.exec(urlParse.pathname)) {
-        if (request.method !== 'GET') {
-          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-          return;
-        }
-        var uriEncodedGameId = gamePathParse[1];
-        try {
-          gameId = decodeURIComponent(uriEncodedGameId);
-        } catch (e) {
-          if (e instanceof URIError) {
-            response.writeOnlyHead(httpStatus.BAD_REQUEST);
-            return;
-          } else {
-            throw e;
-          }
-        }
-        if (!idToGameMap.hasOwnProperty(gameId)) {
-          response.writeOnlyHead(httpStatus.NOT_FOUND);
-          return;
-        }
-        game = idToGameMap[gameId];
-        switch (game.state) {
-          case 'inProgress':
-            response.end(jsontemplate.Template(fs.readFileSync('game-round.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand(game)); // TODO: Content-Type
-          break;
-          case 'won':
-            response.end(jsontemplate.Template(fs.readFileSync('game-won.html.jsont', 'UTF-8'), { default_formatter: 'html' }).expand({ guessesCount: game.guesses.length })); // TODO: Content-Type
-          break;
-        }
-      } else if (makeGuessPathParse = /^\/game\/([^\/]+)\/guess\/$/.exec(urlParse.pathname)) {
-        if (request.method !== 'POST') {
-          response.writeOnlyHead(httpStatus.METHOD_NOT_ALLOWED);
-          return;
-        }
-        new formidable.IncomingForm().parse(request, function (error, fields) {
-          var game, gameId, guess, uriEncodedGameId;
-          if (error) {
-            response.writeHead(httpStatus.BAD_REQUEST); // TODO: Content-Type
-            response.end(error); // TODO: Test
-            return;
-          }
-          var guess = validateAndParseDecimalNonNegativeInt(fields.guess);
-          if (!(guess >= 0 && guess < 10)) {
-            response.writeOnlyHead(httpStatus.BAD_REQUEST); // TODO: Render error message
-            return;
-          }
-          var gameId, uriEncodedGameId = makeGuessPathParse[1];
-          try {
-            gameId = decodeURIComponent(uriEncodedGameId);
-          } catch (e) {
-            if (e instanceof URIError) {
-              response.writeOnlyHead(httpStatus.BAD_REQUEST);
-              return;
-            } else {
-              throw e;
-            }
-          }
-          if (!idToGameMap.hasOwnProperty(gameId)) {
-            response.writeOnlyHead(httpStatus.NOT_FOUND);
-            return;
-          }
-          game = idToGameMap[gameId];
-          switch (game.state) {
-            case 'inProgress':
-              game.guesses.push(guess);
-              response.writeOnlyHead(httpStatus.SEE_OTHER, { 'Location': '..' });
-            break;
-            case 'won':
-              response.writeOnlyHead(httpStatus.CONFLICT); // TODO: Render error message
-            break;
-          }
-        });
-      } else response.writeOnlyHead(httpStatus.NOT_FOUND);
+  response
+    .type('html')
+    .send(htmlString)
+}
+
+app.get('/', async function (request, response) {
+  response.redirect('game/')
+})
+
+app.get('/game', async function (request, response) {
+  const
+    sessionId = request.cookies.sessionId,
+    session = sessionId
+      && idToSessionMap.hasOwnProperty(sessionId)
+      && idToSessionMap[sessionId]
+      || null
+
+  await renderHtmlTemplate(response, 'game.html.jsont', {
+    openId: session && session.openId
+  })
+})
+
+app.post('/game', async function (request, response) {
+  const gameId = uuid.v4()
+  idToGameMap[gameId] = {
+    number: Math.floor(Math.random() * 10),
+    guesses: [],
+    get currentGuess() {
+      return this.guesses.length
+        ? this.guesses[this.guesses.length - 1]
+        : null
+    },
+    get state() {
+      return this.currentGuess === this.number ? 'won' : 'inProgress'
     }
   }
-}).listen(8080);
+  response.redirect(httpStatus.SEE_OTHER, encodeURIComponent(gameId) + '/')
+})
+
+function makeOpenIdRelyingParty(request) {
+  const verifyUrl = `${request.protocol}://${request.hostname}/login/verify/`
+  return new openid.RelyingParty(verifyUrl)
+}
+
+app.get('/login', async function (request, response) {
+  response.sendFile('login.html', {
+    root: '.'
+  })
+})
+
+app.post('/login', async function (request, response) {
+  const openIdIdentifier = request.body.openIdIdentifier
+  if (!openIdIdentifier) {
+    response.sendStatus(httpStatus.BAD_REQUEST)
+    return
+  }
+
+  const relyingParty = makeOpenIdRelyingParty(request)
+
+  let authUrl, authError
+  try {
+    authUrl = await doAsync(relyingParty).authenticate(openIdIdentifier, false)
+  } catch (e) {
+    authError = e
+  }
+  if (!authUrl) {
+    // TODO Return to login page
+    // TODO Status code?
+    const errorMessage = authError
+      ? `Authentication failed: ${authError.message}`
+      : 'Authentication failed'
+    response
+      .type('text')
+      .send(errorMessage)
+    return
+  }
+
+  response.redirect(httpStatus.SEE_OTHER, authUrl)
+})
+
+app.get('/login/verify', async function (request, response) {
+  const relyingParty = makeOpenIdRelyingParty(request)
+
+  let verificationResult, verificationError
+  try {
+    verificationResult = await doAsync(relyingParty).verifyAssertion(request)
+  } catch (e) {
+    verificationError = e
+  }
+  if (!verificationResult) {
+    // TODO Report errors to user
+    verificationError && console.log(`${new Date()} OpenID error: ${verificationError.message}`)
+    response.redirect(httpStatus.SEE_OTHER, '..')
+    return
+  }
+
+  const
+    sessionId = uuid.v4(),
+    session = {
+      openId: result.claimedIdentifier
+    }
+  // FIXME Sessions are never removed from memory unless user logs out
+  // TODO Handle the case in which the user is already logged in
+  // TODO Report login success to user
+  idToSessionMap[sessionId] = session
+
+  response.cookie('sessionId', sessionId)
+  response.redirect(httpStatus.SEE_OTHER, '/')
+})
+
+app.post('/logout', async function (request, response) {
+  const sessionId = request.cookies.sessionId
+  if (idToSessionMap.hasOwnProperty(sessionId)) {
+    delete idToSessionMap[sessionId]
+    response.clearCookie('sessionId')
+  }
+  // TODO Report logout success/failure to user
+  response.redirect(httpStatus.SEE_OTHER, '/')
+})
+
+app.get('/game/:gameId', async function (request, response) {
+  const gameId = request.params.gameId
+  if (!idToGameMap.hasOwnProperty(gameId)) {
+    // TODO HTML error page?
+    response
+      .status(httpStatus.NOT_FOUND)
+      .type('text')
+      .send(`No game found with ID ${gameId}`)
+    return
+  }
+
+  const game = idToGameMap[gameId]
+  switch (game.state) {
+    case 'inProgress':
+      await renderHtmlTemplate(response, 'game-round.html.jsont', game)
+    break
+    case 'won':
+      await renderHtmlTemplate(response, 'game-won.html.jsont', {
+        guessesCount: game.guesses.length
+      })
+    break
+  }
+})
+
+app.post('/game/:gameId/guess', function (request, response) {
+  const gameId = request.params.gameId
+  if (!idToGameMap.hasOwnProperty(gameId)) {
+    // TODO HTML error page?
+    response
+      .status(httpStatus.NOT_FOUND)
+      .type('text')
+      .send(`No game found with ID ${gameId}`)
+    return
+  }
+
+  const guess = validateAndParseDecimalNonNegativeInt(request.body.guess)
+  if (!(guess >= 0 && guess < 10)) {
+    response.sendStatus(httpStatus.BAD_REQUEST) // TODO Render error message
+    return
+  }
+
+  const game = idToGameMap[gameId]
+  switch (game.state) {
+    case 'inProgress':
+      game.guesses.push(guess)
+      response.redirect(httpStatus.SEE_OTHER, '..')
+    break
+    case 'won':
+      response.sendStatus(httpStatus.CONFLICT) // TODO Render error message
+    break
+  }
+})
+
+app.listen(8080, function () {
+  console.log(`${new Date()} Listening on port 8080`)
+})
