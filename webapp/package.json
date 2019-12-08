@@ -1,6 +1,6 @@
 {
   "name": "pick-a-number-webapp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "dependencies": {
     "connect-slashes": "^1.4.0",
     "cookie-parser": "^1.4.4",
