@@ -9,7 +9,7 @@ var
   jsontemplate = require('json-template-foo'),
   openid = require('openid'),
   url = require('url'),
-  uuid = require('node-uuid');
+  uuid = require('uuid');
 
 var
   idToGameMap = {},
