@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pick-a-number.fullname" . }}
+  labels:
+{{ include "pick-a-number.labels" . | indent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "pick-a-number.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
