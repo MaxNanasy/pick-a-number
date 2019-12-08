@@ -1,6 +1,6 @@
 {
   "name": "pick-a-number-webapp",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "dependencies": {
     "cookies": "0.3.4",
     "formidable": "1.0.9",
