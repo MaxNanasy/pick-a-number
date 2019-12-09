@@ -17,6 +17,10 @@ service:
   type: ClusterIP
   port: 8080
 
+db:
+  service:
+    type: ClusterIP
+
 ingress:
   enabled: false
   annotations: {}

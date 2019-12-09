@@ -51,7 +51,7 @@ metadata:
   labels:
     {{ include "pick-a-number.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.db.service.type }}
   ports:
     - port: 27017
       protocol: TCP
