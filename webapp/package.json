@@ -10,6 +10,7 @@
     "express-healthcheck": "^0.1.0",
     "http-status": "0.1.1",
     "json-template-foo": "0.8.0",
+    "mongodb": "^3.3.5",
     "openid": "https://github.com/havard/node-openid/tarball/ead2635b1d51e8383ec497c7fc6bcf1adf66c67b",
     "uuid": "^3.3.3"
   }

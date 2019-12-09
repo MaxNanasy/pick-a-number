@@ -11,7 +11,7 @@ function makeOpenIdRelyingParty(request) {
   return new openid.RelyingParty(verifyUrl)
 }
 
-module.exports = function (app) {
+module.exports = function ({ app }) {
 
   app.get('/login', async function (request, response) {
     response.sendFile('login.html', {

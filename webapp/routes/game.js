@@ -5,8 +5,6 @@ const
   jsontemplate = require('json-template-foo'),
   uuid = require('uuid')
 
-const idToGameMap = {}
-
 async function renderHtmlTemplate(response, templateFile, data) {
   const
     templateOptions = {
@@ -27,7 +25,28 @@ function validateAndParseDecimalNonNegativeInt(string) {
     : NaN
 }
 
-module.exports = function (app) {
+module.exports = function ({ app, db }) {
+
+  const gamesCollection = db.collection('games')
+
+  async function findGame(gameId) {
+    const game = await gamesCollection.findOne({ _id: gameId })
+    if (!game)
+      return null
+    return Object.assign({
+
+      get currentGuess() {
+        return this.guesses.length
+          ? this.guesses[this.guesses.length - 1]
+          : null
+      },
+
+      get state() {
+        return this.currentGuess === this.number ? 'won' : 'inProgress'
+      }
+
+    }, game)
+  }
 
   app.get('/', async function (request, response) {
     response.redirect('game/')
@@ -49,24 +68,20 @@ module.exports = function (app) {
 
   app.post('/game', async function (request, response) {
     const gameId = uuid.v4()
-    idToGameMap[gameId] = {
+    await gamesCollection.insertOne({
+      _id: gameId,
       number: Math.floor(Math.random() * 10),
-      guesses: [],
-      get currentGuess() {
-        return this.guesses.length
-          ? this.guesses[this.guesses.length - 1]
-          : null
-      },
-      get state() {
-        return this.currentGuess === this.number ? 'won' : 'inProgress'
-      }
-    }
+      guesses: []
+    })
     response.redirect(httpStatus.SEE_OTHER, encodeURIComponent(gameId) + '/')
   })
 
   app.get('/game/:gameId', async function (request, response) {
-    const gameId = request.params.gameId
-    if (!idToGameMap.hasOwnProperty(gameId)) {
+    const
+      gameId = request.params.gameId,
+      game = await findGame(request.params.gameId)
+
+    if (!game) {
       // TODO HTML error page?
       response
         .status(httpStatus.NOT_FOUND)
@@ -75,7 +90,6 @@ module.exports = function (app) {
       return
     }
 
-    const game = idToGameMap[gameId]
     switch (game.state) {
       case 'inProgress':
         await renderHtmlTemplate(response, 'game-round.html.jsont', game)
@@ -88,9 +102,12 @@ module.exports = function (app) {
     }
   })
 
-  app.post('/game/:gameId/guess', function (request, response) {
-    const gameId = request.params.gameId
-    if (!idToGameMap.hasOwnProperty(gameId)) {
+  app.post('/game/:gameId/guess', async function (request, response) {
+    const
+      gameId = request.params.gameId,
+      game = await findGame(request.params.gameId)
+
+    if (!game) {
       // TODO HTML error page?
       response
         .status(httpStatus.NOT_FOUND)
@@ -105,10 +122,12 @@ module.exports = function (app) {
       return
     }
 
-    const game = idToGameMap[gameId]
     switch (game.state) {
       case 'inProgress':
-        game.guesses.push(guess)
+        // FIXME Race condition between finding and updating game
+        await gamesCollection.updateOne({ _id: gameId }, {
+          $push: { guesses: guess }
+        })
         response.redirect(httpStatus.SEE_OTHER, '..')
       break
       case 'won':

@@ -6,7 +6,7 @@ const
 
 require('express-async-errors')
 
-module.exports = function (app) {
+module.exports = function ({ app }) {
   app.use(cookieParser())
   app.use(express.urlencoded({
     extended: true
