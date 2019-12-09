@@ -13,5 +13,6 @@ RUN npm install
 COPY *.jsont ./
 COPY *.html ./
 COPY *.js ./
+COPY routes routes
 
 CMD [ "node", "server.js" ]
