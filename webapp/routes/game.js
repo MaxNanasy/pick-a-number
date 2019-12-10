@@ -29,10 +29,9 @@ module.exports = function ({ app, db }) {
 
   const gamesCollection = db.collection('games')
 
-  async function findGame(gameId) {
-    const game = await gamesCollection.findOne({ _id: gameId })
+  function wrapGame(game) {
     if (!game)
-      return null
+      return game
     return Object.assign({
 
       get currentGuess() {
@@ -46,6 +45,10 @@ module.exports = function ({ app, db }) {
       }
 
     }, game)
+  }
+
+  async function findGame(gameId) {
+    return wrapGame(await gamesCollection.findOne({ _id: gameId }))
   }
 
   app.get('/', async function (request, response) {
@@ -111,9 +114,35 @@ module.exports = function ({ app, db }) {
 
     const
       gameId = request.params.gameId,
-      game = await findGame(request.params.gameId)
+      updateResult =
+        await gamesCollection.findOneAndUpdate({
+          _id: gameId
+        }, [{
+          $set: {
+            guesses: {
+              $cond: {
+                if: {
+                  $eq: [
+                    {
+                      $arrayElemAt: [
+                        "$guesses",
+                        {
+                          $subtract: [{ $size: "$guesses" }, 1]
+                        }
+                      ]
+                    },
+                    "$number"
+                  ]
+                },
+                then: "$guesses",
+                else: { $concatArrays: ["$guesses", [guess]] }
+              }
+            }
+          }
+        }]),
+        preupdateGame = wrapGame(updateResult.value)
 
-    if (!game) {
+    if (!preupdateGame) {
       // TODO HTML error page?
       response
         .status(httpStatus.NOT_FOUND)
@@ -121,25 +150,12 @@ module.exports = function ({ app, db }) {
         .send(`No game found with ID ${gameId}`)
       return
     }
-    if (game.state == 'won') {
+    if (preupdateGame.state == 'won') {
+      // TODO Redirect to '..'?
       response
         .status(httpStatus.CONFLICT)
         .type('text')
         .send('This game has already been won')
-      return
-    }
-
-    const updateResult = await gamesCollection.updateOne({
-      _id: game._id,
-      guesses: game.guesses
-    }, {
-      $push: { guesses: guess }
-    })
-
-    if (updateResult.matchedCount == 0) {
-      // TODO Retry?
-      // FIXME Is this the right status code?
-      response.sendStatus(httpStatus.CONFLICT) // TODO Render error message
       return
     }
 
