@@ -42,6 +42,10 @@ module.exports = function ({ app, db }) {
 
       get state() {
         return this.currentGuess === this.number ? 'won' : 'inProgress'
+      },
+
+      get guessesCount() {
+        return this.guesses.length
       }
 
     }, game)
@@ -98,9 +102,7 @@ module.exports = function ({ app, db }) {
         await renderHtmlTemplate(response, 'game-round.html.jsont', game)
       break
       case 'won':
-        await renderHtmlTemplate(response, 'game-won.html.jsont', {
-          guessesCount: game.guesses.length
-        })
+        await renderHtmlTemplate(response, 'game-won.html.jsont', game)
       break
     }
   })

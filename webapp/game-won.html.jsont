@@ -7,5 +7,13 @@
   <body>
     <h1>You've won!</h1>
     <p>Total guesses: {guessesCount|str}</p>
+    {.section guesses}
+      <h1>Guesses</h1>
+      <ul>
+        {.repeated section @}
+          <li>{@|str}</li>
+        {.end}
+      </ul>
+    {.end}
   </body>
 </html>

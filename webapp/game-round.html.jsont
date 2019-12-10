@@ -5,18 +5,18 @@
     <title>Pick a Number</title>
   </head>
   <body>
+    <form method="post" action="guess/">
+      <!-- TODO: Server should specify the min and max -->
+      <input type="number" name="guess" min="0" max="9" required autofocus value="{currentGuess|raw}" />
+      <input type="submit" value="Guess" />
+    </form>
     {.section guesses}
-      <h1>Incorrect Guesses</h1>
+      <h1>Guesses</h1>
       <ul>
         {.repeated section @}
           <li>{@|str}</li>
         {.end}
       </ul>
     {.end}
-    <form method="post" action="guess/">
-      <!-- TODO: Server should specify the min and max -->
-      <input type="number" name="guess" min="0" max="9" required autofocus value="{currentGuess|raw}" />
-      <input type="submit" value="Guess" />
-    </form>
   </body>
 </html>
