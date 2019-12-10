@@ -103,6 +103,12 @@ module.exports = function ({ app, db }) {
   })
 
   app.post('/game/:gameId/guess', async function (request, response) {
+    const guess = validateAndParseDecimalNonNegativeInt(request.body.guess)
+    if (!(guess >= 0 && guess < 10)) {
+      response.sendStatus(httpStatus.BAD_REQUEST) // TODO Render error message
+      return
+    }
+
     const
       gameId = request.params.gameId,
       game = await findGame(request.params.gameId)
@@ -115,25 +121,29 @@ module.exports = function ({ app, db }) {
         .send(`No game found with ID ${gameId}`)
       return
     }
-
-    const guess = validateAndParseDecimalNonNegativeInt(request.body.guess)
-    if (!(guess >= 0 && guess < 10)) {
-      response.sendStatus(httpStatus.BAD_REQUEST) // TODO Render error message
+    if (game.state == 'won') {
+      response
+        .status(httpStatus.CONFLICT)
+        .type('text')
+        .send('This game has already been won')
       return
     }
 
-    switch (game.state) {
-      case 'inProgress':
-        // FIXME Race condition between finding and updating game
-        await gamesCollection.updateOne({ _id: gameId }, {
-          $push: { guesses: guess }
-        })
-        response.redirect(httpStatus.SEE_OTHER, '..')
-      break
-      case 'won':
-        response.sendStatus(httpStatus.CONFLICT) // TODO Render error message
-      break
+    const updateResult = await gamesCollection.updateOne({
+      _id: game._id,
+      guesses: game.guesses
+    }, {
+      $push: { guesses: guess }
+    })
+
+    if (updateResult.matchedCount == 0) {
+      // TODO Retry?
+      // FIXME Is this the right status code?
+      response.sendStatus(httpStatus.CONFLICT) // TODO Render error message
+      return
     }
+
+    response.redirect(httpStatus.SEE_OTHER, '..')
   })
 
 }
