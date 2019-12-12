@@ -1,0 +1,14 @@
+service:
+  type: NodePort
+
+db:
+  service:
+    type: LoadBalancer
+
+ingress:
+  enabled: true
+  annotations: {}
+  hosts:
+    - host:
+      paths:
+      - /*

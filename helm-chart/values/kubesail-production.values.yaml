@@ -1,0 +1,11 @@
+ingress:
+  enabled: true
+  annotations: {}
+  hosts:
+    - host: pick-a-number.maxnanasy.usw1.kubesail.org
+      paths:
+      - /
+  tls:
+   - secretName: pick-a-number-maxnanasy-usw1-kubesail-org
+     hosts:
+       - pick-a-number.maxnanasy.usw1.kubesail.org
