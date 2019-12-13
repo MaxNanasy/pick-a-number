@@ -24,6 +24,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DB_URL
+              value: mongodb://{{ include "pick-a-number.fullname" . }}-db.{{ .Release.Namespace }}.svc.cluster.local/pick-a-number
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
