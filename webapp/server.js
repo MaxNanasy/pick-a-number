@@ -9,7 +9,7 @@ async function main() {
 
   const app = express()
 
-  const dbUrl = 'mongodb://104.155.135.46:27017/pick-a-number'
+  const dbUrl = process.env.DB_URL || 'mongodb://104.155.135.46:27017/pick-a-number'
   console.log(`${new Date()} Connecting to DB at ${dbUrl}`)
   const mongoClient = await MongoClient.connect(dbUrl, {
     useUnifiedTopology: true
